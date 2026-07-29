@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import os
 import sys
 import tempfile
 import uuid
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
-
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 
 EXPECTED_TOOLS = {
     "glacier_open_session",
@@ -53,6 +52,9 @@ def _require_ok(name: str, value: dict[str, Any]) -> None:
 
 
 async def _exercise(state_dir: Path) -> dict[str, Any]:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
     environment = dict(os.environ)
     environment.pop("GLACIER_USER_ID", None)
     environment.update(
@@ -164,9 +166,29 @@ async def _exercise(state_dir: Path) -> dict[str, Any]:
             }
 
 
-def main() -> None:
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run a live Project Glacier start/send/reset smoke workflow. "
+            "This mutates the challenge."
+        )
+    )
+    parser.add_argument(
+        "--acknowledge-live-mutation",
+        action="store_true",
+        help="confirm explicit authority for the live start/send/reset mutations",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> None:
     """Execute the smoke test and print only non-sensitive status metadata."""
 
+    arguments = _parser().parse_args(argv)
+    if not arguments.acknowledge_live_mutation:
+        raise SystemExit(
+            "refusing live mutation without --acknowledge-live-mutation"
+        )
     with tempfile.TemporaryDirectory(prefix="project-glacier-live-smoke-") as directory:
         result = asyncio.run(_exercise(Path(directory)))
     print(json.dumps(result, indent=2, sort_keys=True))
