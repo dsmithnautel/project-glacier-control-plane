@@ -110,6 +110,67 @@ by this repository.
 For an existing workspace, do **not** run the initializer over live artifacts. The configuration
 renderer is safe to run idempotently; use `--force` only after reviewing intentional local drift.
 
+## Use the MCP broker without the orchestrator
+
+The broker under `mcp_server/` can run by itself as a local STDIO MCP server. This is useful when
+an MCP-capable host should call the seven guarded `glacier_*` tools directly without loading the
+master prompt, deterministic helper, runtime ledgers, multiagent scheduling, or offline-worker
+protocol.
+
+MCP-only mode is a lower-level interface, not a replacement safety policy. The broker still
+enforces the exact authorized origin, one unfinished case, unique operation IDs, write-ahead
+journaling, delivery-unknown lockout, immutable submission hashes, and quota accounting. The MCP
+client or human operator remains responsible for case selection, evidence review, adjudication,
+and durable research records that the full orchestrator would normally manage.
+
+1. Build only the broker environment and store the credential through the native no-echo command:
+
+   ```bash
+   uv sync --project mcp_server --dev
+   uv run --project mcp_server project-glacier-store-credential
+   ```
+
+2. Register a local STDIO server in the MCP host. For Codex, the following is a minimal project
+   registration; other MCP hosts need the equivalent command, arguments, working directory, and
+   environment. Replace the absolute paths with the clone's real location:
+
+   ```toml
+   [mcp_servers.project_glacier]
+   command = "/absolute/path/to/Project Glacier/mcp_server/.venv/bin/python"
+   args = ["-m", "project_glacier_mcp.server"]
+   cwd = "/absolute/path/to/Project Glacier/mcp_server"
+   required = true
+   startup_timeout_sec = 20.0
+   tool_timeout_sec = 240.0
+
+   [mcp_servers.project_glacier.env]
+   GLACIER_KEYCHAIN_SERVICE = "project-glacier-user-id"
+   GLACIER_ALLOW_SUBMIT = "false"
+   GLACIER_STATE_DIR = "/absolute/path/to/Project Glacier/.glacier-state"
+   ```
+
+   The broker supplies and validates the authorized origin itself. Keep
+   `GLACIER_ALLOW_SUBMIT = "false"` unless an explicitly authorized workflow needs submission.
+   Never place the participant credential in this TOML file.
+
+3. Restart or reload the MCP host. Running the Python command directly in a terminal starts a
+   machine-facing STDIO protocol process; it is not an interactive shell.
+
+4. Verify the offline MCP handshake without contacting the challenge:
+
+   ```bash
+   uv run --project mcp_server pytest -q mcp_server/tests/test_mcp_protocol.py
+   ```
+
+5. During authorized use, call `glacier_open_session` first, keep exactly one active case, give
+   every message, submission, and reset a unique operation ID, and never retry an `UNKNOWN`
+   delivery. The full tool list and broker state model are documented in
+   [`mcp_server/README.md`](mcp_server/README.md).
+
+For Codex specifically, `python3 scripts/configure_codex.py` renders the repository's complete
+registration. MCP-only consumers may instead use the minimal registration above and omit
+workspace initialization because the broker maintains its own state directory.
+
 ## Starting Project Glacier
 
 A normal request uses the single-root protocol:
