@@ -1,0 +1,43 @@
+.DS_Store
+/.glacier-state/
+/.project-glacier-orchestrator/
+/.project-glacier-orchestrator.lock
+/.PROJECT_GLACIER_RESUME.*
+/.project-glacier-init-*
+
+# Local Codex registration is rendered from versioned templates.
+/.codex/config.toml
+/.codex/agents/*.toml
+/.codex/.*.configure-codex-*.tmp
+/.codex/agents/.*.configure-codex-*.tmp
+
+# Canonical run state is local and may contain case, delivery, and receipt metadata.
+/PROJECT_GLACIER_RESUME.txt
+/CURRENT_CHECKPOINT.md
+/glacier_artifact_index.md
+/glacier_coverage_matrix.md
+/glacier_experiment_ledger.md
+/glacier_findings_queue.md
+/glacier_hypothesis_registry.md
+/glacier_rules_dossier.md
+
+# Generated and local-only material.
+/tmp/
+/.venv/
+/.pytest_cache/
+/.ruff_cache/
+/.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+*.log
+.env
+.env.*
+!.env.example
+
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo

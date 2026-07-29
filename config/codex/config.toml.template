@@ -1,0 +1,44 @@
+[agents]
+max_threads = 30
+max_depth = 1
+
+[features]
+multi_agent = true
+
+[mcp_servers.project_glacier]
+command = "{{MCP_PYTHON}}"
+args = ["-m", "project_glacier_mcp.server"]
+cwd = "{{MCP_ROOT}}"
+required = true
+startup_timeout_sec = 20.0
+tool_timeout_sec = 240.0
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.project_glacier.env]
+GLACIER_BASE_URL = "http://144.25.123.139:8653"
+GLACIER_KEYCHAIN_SERVICE = "project-glacier-user-id"
+GLACIER_ALLOW_SUBMIT = "true"
+GLACIER_MAX_SUBMISSIONS = "1000"
+GLACIER_MAX_TURNS = "20"
+GLACIER_STATE_DIR = "{{STATE_DIR}}"
+
+[mcp_servers.project_glacier.tools.glacier_open_session]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_start_case]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_send_message]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_get_state]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_prepare_submission]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_commit_submission]
+approval_mode = "approve"
+
+[mcp_servers.project_glacier.tools.glacier_reset_case]
+approval_mode = "approve"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Glacier Orchestrator"
+  short_description: "Safely coordinate the offline root pilot"
+  default_prompt: "Use $project-glacier-orchestrator to start or resume Project Glacier in multi-root pilot mode and create or reuse its isolated offline worker task."
