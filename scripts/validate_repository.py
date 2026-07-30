@@ -29,6 +29,8 @@ EXPECTED_FILES = frozenset(
         ".python-version",
         "AGENTS.md",
         "CONTRIBUTING.md",
+        "MCP_SOURCE_REVISION",
+        "MCP_SOURCE_TREE",
         "README.md",
         "SECURITY.md",
         "docs/ARCHITECTURE.md",
@@ -37,12 +39,16 @@ EXPECTED_FILES = frozenset(
         "config/codex/agents/capacity-bottleneck-optimizer.toml.template",
         "config/codex/agents/mcp-interface-reliability.toml.template",
         "config/codex/config.toml.template",
+        "mcp_server/.python-version",
+        "mcp_server/CHANGELOG.md",
+        "mcp_server/CONTRIBUTING.md",
         "mcp_server/README.md",
-        "mcp_server/SOURCE_REVISION",
+        "mcp_server/SECURITY.md",
         "mcp_server/.gitignore",
         "mcp_server/AGENTS.md",
+        "mcp_server/config/codex.toml.example",
+        "mcp_server/docs/PROVENANCE.md",
         "mcp_server/pyproject.toml",
-        "mcp_server/scripts/live_mcp_smoke.py",
         "mcp_server/src/project_glacier_mcp/__init__.py",
         "mcp_server/src/project_glacier_mcp/__main__.py",
         "mcp_server/src/project_glacier_mcp/broker.py",
@@ -61,7 +67,7 @@ EXPECTED_FILES = frozenset(
         "mcp_server/tests/test_credential.py",
         "mcp_server/tests/test_journal.py",
         "mcp_server/tests/test_mcp_protocol.py",
-        "mcp_server/tests/test_project_registration.py",
+        "mcp_server/tests/test_example_registration.py",
         "mcp_server/tests/test_settings.py",
         "mcp_server/tests/test_transport.py",
         "mcp_server/uv.lock",
@@ -82,7 +88,9 @@ EXPECTED_FILES = frozenset(
         "pyproject.toml",
         "scripts/configure_codex.py",
         "scripts/initialize_workspace.py",
+        "scripts/live_mcp_smoke.py",
         "scripts/validate_repository.py",
+        "scripts/verify_mcp_snapshot.py",
         "templates/runtime/CURRENT_CHECKPOINT.md",
         "templates/runtime/glacier_artifact_index.md",
         "templates/runtime/glacier_coverage_matrix.md",
@@ -96,9 +104,11 @@ EXPECTED_FILES = frozenset(
         "tests/test_checkpoint.py",
         "tests/test_configure_codex.py",
         "tests/test_initialize_workspace.py",
+        "tests/test_mcp_registration.py",
         "tests/test_outbox.py",
         "tests/test_protocol.py",
         "tests/test_validate_repository.py",
+        "tests/test_verify_mcp_snapshot.py",
         "tests/test_workflow.py",
     }
 )
@@ -144,7 +154,7 @@ _CONTENT_RULES = (
     (b"ocid1." + b"tenancy.", "tenancy-identifier"),
 )
 
-_SOURCE_REVISION_RE = re.compile(rb"[0-9a-f]{40}(?:\r?\n)?")
+_GIT_OBJECT_RE = re.compile(rb"[0-9a-f]{40}(?:\r?\n)?")
 MAX_CANDIDATE_BYTES = 16 * 1024 * 1024
 
 
@@ -463,8 +473,11 @@ def validate_repository(start: Path) -> tuple[Path, tuple[str, ...], tuple[Issue
         for path in EXPECTED_FILES - required_candidate_set
     }
 
-    revision_path = "mcp_server/SOURCE_REVISION"
-    revision_content: bytes | None = None
+    pin_rules = {
+        "MCP_SOURCE_REVISION": "invalid-source-revision",
+        "MCP_SOURCE_TREE": "invalid-source-tree",
+    }
+    pin_contents: dict[str, bytes] = {}
     root_fd = _open_repository_root(root)
     try:
         for path in candidates:
@@ -481,17 +494,16 @@ def validate_repository(start: Path) -> tuple[Path, tuple[str, ...], tuple[Issue
                 issues.add(content_issue)
                 continue
             assert content is not None
-            if path == revision_path:
-                revision_content = content
+            if path in pin_rules:
+                pin_contents[path] = content
             issues.update(_content_issues(path, content))
     finally:
         os.close(root_fd)
 
-    if (
-        revision_content is not None
-        and _SOURCE_REVISION_RE.fullmatch(revision_content) is None
-    ):
-        issues.add(Issue(revision_path, "invalid-source-revision"))
+    for pin_path, rule in pin_rules.items():
+        pin_content = pin_contents.get(pin_path)
+        if pin_content is not None and _GIT_OBJECT_RE.fullmatch(pin_content) is None:
+            issues.add(Issue(pin_path, rule))
 
     if _index_entries(root) != index_entries:
         raise ValidationError("Git index changed during repository validation")

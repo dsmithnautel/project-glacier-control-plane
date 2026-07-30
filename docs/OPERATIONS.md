@@ -31,6 +31,7 @@ Run the boundary validator first and last:
 
 ```bash
 python3 scripts/validate_repository.py
+python3 scripts/verify_mcp_snapshot.py
 ```
 
 Then run the offline suites:
@@ -92,6 +93,7 @@ the archive outcome, and only then restore `SINGLE_ROOT`.
 
 ## Live smoke test
 
-`mcp_server/scripts/live_mcp_smoke.py` authenticates and can create and reset a real case. It is
-not an install check, unit test, or CI command. Use it only when the user has explicitly authorized
-the live workflow, all base-protocol reconciliation gates pass, and no current case is unresolved.
+`scripts/live_mcp_smoke.py` authenticates and can create and reset a real case. It is not an
+install check, unit test, or CI command. It refuses to run without
+`--acknowledge-live-mutation`. Use it only when the user has explicitly authorized the live
+workflow, all base-protocol reconciliation gates pass, and no current case is unresolved.

@@ -20,10 +20,10 @@ user request and must follow `AGENTS.md` and the authoritative master prompt.
 | `project_glacier_offline_root_worker_prompt.md` | Isolated worker contract for the multi-root pilot |
 | `project_glacier_orchestrator/` | Deterministic packet, checkpoint, outbox, and lifecycle helper |
 | `.agents/skills/project-glacier-orchestrator/` | Repo-local Codex skill for the multi-root pilot |
-| `mcp_server/` | Narrow STDIO MCP broker and its locked dependencies |
+| `mcp_server/` | Pinned Git subtree of the canonical private STDIO MCP broker |
 | `config/codex/` | Portable templates for local Codex and custom-agent registration |
 | `templates/runtime/` | Neutral starting files for a new local workspace |
-| `scripts/` | Safe initialization, configuration, and repository-boundary checks |
+| `scripts/` | Initialization, configuration, validation, and explicitly gated live smoke tooling |
 | `tests/` and `mcp_server/tests/` | Offline orchestrator and MCP test suites |
 
 The root orchestrator is intentionally standard-library-only. The MCP component has its own
@@ -66,8 +66,9 @@ virtual environment between paths or machines.
 
 ## Set up a fresh clone
 
-Keep the repository local or in an approved private location. No remote or license is configured
-by this repository.
+This repository is hosted privately at
+[`dsmithnautel/project-glacier-control-plane`](https://github.com/dsmithnautel/project-glacier-control-plane)
+in the company-approved destination. It has no public/open-source license and must remain private.
 
 1. Create the MCP environment from the committed lock:
 
@@ -112,10 +113,12 @@ renderer is safe to run idempotently; use `--force` only after reviewing intenti
 
 ## Use the MCP broker without the orchestrator
 
-The broker under `mcp_server/` can run by itself as a local STDIO MCP server. This is useful when
-an MCP-capable host should call the seven guarded `glacier_*` tools directly without loading the
-master prompt, deterministic helper, runtime ledgers, multiagent scheduling, or offline-worker
-protocol.
+If only the broker is needed, use the canonical private
+[`dsmithnautel/project-glacier-mcp`](https://github.com/dsmithnautel/project-glacier-mcp)
+repository. The complete pinned copy under `mcp_server/` can also run by itself as a local STDIO
+MCP server. This is useful when an MCP-capable host should call the seven guarded `glacier_*`
+tools directly without loading the master prompt, deterministic helper, runtime ledgers,
+multiagent scheduling, or offline-worker protocol.
 
 MCP-only mode is a lower-level interface, not a replacement safety policy. The broker still
 enforces the exact authorized origin, one unfinished case, unique operation IDs, write-ahead
@@ -142,6 +145,7 @@ and durable research records that the full orchestrator would normally manage.
    required = true
    startup_timeout_sec = 20.0
    tool_timeout_sec = 240.0
+   default_tools_approval_mode = "prompt"
 
    [mcp_servers.project_glacier.env]
    GLACIER_KEYCHAIN_SERVICE = "project-glacier-user-id"
@@ -192,6 +196,7 @@ Repository boundary:
 
 ```bash
 python3 scripts/validate_repository.py
+python3 scripts/verify_mcp_snapshot.py
 ```
 
 Orchestrator and repository-tooling tests:
@@ -212,12 +217,13 @@ Validate the rendered consumer registration:
 
 ```bash
 PROJECT_GLACIER_CODEX_CONFIG="$PWD/.codex/config.toml" \
-  uv run --project mcp_server pytest -q mcp_server/tests/test_project_registration.py
+  python3 -m unittest tests.test_mcp_registration -v
 ```
 
-The file `mcp_server/scripts/live_mcp_smoke.py` is **not** part of normal validation. It
-authenticates and can create and reset a real challenge case. Run it only under the live master
-protocol with explicit authority and reconciled state.
+The file `scripts/live_mcp_smoke.py` is **not** part of normal validation. It authenticates and
+can create and reset a real challenge case. It refuses to run without
+`--acknowledge-live-mutation`; even with that flag, run it only under the live master protocol
+with explicit authority and reconciled state.
 
 ## Local state versus repository source
 
@@ -236,11 +242,12 @@ schemas and safe starting points, not evidence of live state.
 
 ## Repository status and publication
 
-The MCP source import is pinned in `mcp_server/SOURCE_REVISION`; see
-[provenance](docs/PROVENANCE.md). The broker intentionally contains an exact allowlist for an
-internal challenge origin. Keep this repository local/private unless its classification and an
-approved private destination are confirmed.
+The canonical broker commit and Git tree are pinned outside the vendored subtree in
+`MCP_SOURCE_REVISION` and `MCP_SOURCE_TREE`; see [provenance](docs/PROVENANCE.md). The broker
+intentionally contains an exact allowlist for an internal challenge origin. Both GitHub
+repositories are private, company-approved storage and have no public/open-source license.
 
-No Git remote and no software license are selected here. Those are organizational decisions, not
-safe defaults. See [security](SECURITY.md), [operations](docs/OPERATIONS.md), and
-[contributing](CONTRIBUTING.md) before publishing or changing the broker boundary.
+Do not publish, fork publicly, or distribute either repository externally without a separate
+classification and licensing decision. See [security](SECURITY.md),
+[operations](docs/OPERATIONS.md), and [contributing](CONTRIBUTING.md) before changing the broker
+boundary.

@@ -31,7 +31,7 @@ class RepositoryFixture:
         for relative_path in validate_repository.EXPECTED_FILES:
             content = (
                 "0123456789abcdef0123456789abcdef01234567\n"
-                if relative_path == "mcp_server/SOURCE_REVISION"
+                if relative_path in {"MCP_SOURCE_REVISION", "MCP_SOURCE_TREE"}
                 else "reusable\n"
             )
             self.write(relative_path, content)
@@ -287,19 +287,27 @@ class ValidateRepositoryTests(unittest.TestCase):
         self.assertTrue(swapped)
 
     def test_invalid_source_revision_is_rejected(self) -> None:
-        self.fixture.write("mcp_server/SOURCE_REVISION", "ABC123\n")
+        self.fixture.write("MCP_SOURCE_REVISION", "ABC123\n")
 
         self.assertIn(
-            "mcp_server/SOURCE_REVISION: invalid-source-revision",
+            "MCP_SOURCE_REVISION: invalid-source-revision",
             self.validate(),
         )
 
     def test_source_revision_accepts_crlf_portably(self) -> None:
-        revision = self.root / "mcp_server/SOURCE_REVISION"
+        revision = self.root / "MCP_SOURCE_REVISION"
         revision.write_bytes(b"0123456789abcdef0123456789abcdef01234567\r\n")
 
         self.assertNotIn(
-            "mcp_server/SOURCE_REVISION: invalid-source-revision",
+            "MCP_SOURCE_REVISION: invalid-source-revision",
+            self.validate(),
+        )
+
+    def test_invalid_source_tree_is_rejected(self) -> None:
+        self.fixture.write("MCP_SOURCE_TREE", "not-a-tree\n")
+
+        self.assertIn(
+            "MCP_SOURCE_TREE: invalid-source-tree",
             self.validate(),
         )
 

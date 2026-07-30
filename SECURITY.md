@@ -84,15 +84,16 @@ contains operational metadata even though it intentionally omits message bodies 
 Install the MCP environment from `mcp_server/uv.lock`. Review dependency changes and retain the
 exact version constraint for the MCP SDK unless a tested migration intentionally changes it.
 
-Unit tests and the STDIO handshake are offline. `mcp_server/scripts/live_mcp_smoke.py` is different:
-it authenticates and can create and reset a real case. Never run it in CI or as a routine install
-check.
+Unit tests and the STDIO handshake are offline. `scripts/live_mcp_smoke.py` is different: it
+authenticates and can create and reset a real case, and it requires an explicit
+`--acknowledge-live-mutation` flag. Never run it in CI or as a routine install check.
 
 ## Repository classification
 
-The source broker intentionally includes an internal exact-origin allowlist. This repository has
-no remote and no license by default. Treat it as local/private until an owner confirms its
-classification, approved private hosting location, access controls, and licensing.
+The source broker intentionally includes an internal exact-origin allowlist. The private
+`dsmithnautel/project-glacier-control-plane` and `dsmithnautel/project-glacier-mcp` repositories
+are company-approved storage for this material. Neither repository has a public/open-source
+license or approval for public forks, public package publication, or external redistribution.
 
 If protected data is accidentally committed, stop publication and coordinate approved history
 remediation. Do not paste the data into an issue, pull request, or chat while reporting it.

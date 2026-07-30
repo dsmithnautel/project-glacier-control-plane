@@ -1,50 +1,74 @@
 # Provenance
 
-## MCP import baseline
+## Historical broker baseline
 
-The `mcp_server/` component was imported from a clean local checkout of the
-`project-glacier-mcp` repository at:
+The original `mcp_server/` component was imported from a clean local
+`project-glacier-mcp` checkout at:
 
 ```text
 14881b23b046dc08bdd3d53ad99f6fec63106b08
 ```
 
-The same value is stored as machine-readable text in `mcp_server/SOURCE_REVISION`.
+That import copied tracked source only and excluded Git metadata, virtual environments, caches,
+generated files, credentials, and runtime state. The control plane subsequently added
+standalone documentation and fail-closed rejection of a relative broker state directory.
 
-The import copied tracked source only: package code, tests, scripts, README, scoped instructions,
-`pyproject.toml`, `uv.lock`, and `.gitignore`. It intentionally excluded the upstream `.git`
-directory, virtual environment, caches, and generated files.
+## Canonical standalone repository
 
-The source, tests, smoke-test source, package manifest, and lockfile were byte-compared with that
-checkout before monorepo-specific changes. The local tree updates the component documentation and
-adds fail-closed rejection of a relative broker state directory to prevent accidental
-working-directory-relative journal placement. The resulting implementation passed its offline
-Ruff and pytest suites.
+The canonical broker source now lives in the private, company-approved
+[`dsmithnautel/project-glacier-mcp`](https://github.com/dsmithnautel/project-glacier-mcp)
+repository. It was created with fresh, component-only history so deleted control-plane content
+could not follow it.
 
-## Why history was not nested
+The control plane keeps a complete Git subtree under `mcp_server/`, so a control-plane clone does
+not depend on a second private checkout at runtime. The current immutable source commit is stored
+in root-level `MCP_SOURCE_REVISION`; its exact Git tree is stored in `MCP_SOURCE_TREE`. The pin
+must remain outside `mcp_server/` because a canonical repository cannot contain its own current
+commit hash without changing that hash.
 
-A nested Git repository would make staging, review, and provenance ambiguous. The parent
-repository therefore owns the imported files directly, while `SOURCE_REVISION` provides the
-upstream anchor.
+`scripts/verify_mcp_snapshot.py` proves that:
 
-## Updating the import
+- the vendored working tree has no tracked or non-ignored drift;
+- the committed `HEAD:mcp_server` tree equals `MCP_SOURCE_TREE`; and
+- when a standalone clone is supplied, `MCP_SOURCE_REVISION^{tree}` also equals that tree.
 
-For a future update:
+The verifier performs no fetch and no network access.
 
-1. verify the upstream checkout is clean and record its full commit;
-2. compare its tracked-file list with `mcp_server/`;
-3. copy tracked content only;
-4. preserve or deliberately review monorepo-specific README, `AGENTS.md`, state-path hardening,
-   and tests;
-5. update `SOURCE_REVISION`;
-6. review code and dependency diffs, especially transport, credentials, journaling, delivery
-   ambiguity, submissions, quotas, and redaction;
-7. rebuild the nested environment from `uv.lock`;
-8. run every offline check and the repository-boundary validator;
-9. do not run the live smoke test as an import-verification shortcut.
+## Updating the subtree
 
-## Repository publication
+1. Make and validate broker changes in the standalone repository.
+2. Fetch its immutable full commit into the control-plane clone.
+3. Confirm it descends from the current pin unless a reviewed history migration is intended.
+4. Review source and dependency differences and all security invariants.
+5. Run:
 
-No remote, hosting provider, visibility, or license is implied by this import. The broker contains
-an intentional internal exact-origin allowlist. Confirm classification and an approved private
-destination before publication.
+   ```bash
+   git subtree merge --prefix=mcp_server <full-commit> --squash \
+     --message "Sync MCP snapshot to <full-commit>"
+   ```
+
+6. Require these commands to return the same tree ID:
+
+   ```bash
+   git rev-parse HEAD:mcp_server
+   git rev-parse <full-commit>^{tree}
+   ```
+
+7. Update both root pin files.
+8. Run:
+
+   ```bash
+   python3 scripts/verify_mcp_snapshot.py --source-repo <standalone-clone>
+   python3 scripts/validate_repository.py
+   ```
+
+9. Rebuild from the committed lock and run every offline MCP and control-plane test.
+
+Never use the live smoke workflow to prove that an import built. It mutates the challenge.
+
+## Publication boundary
+
+Both repositories remain private and contain an intentional internal exact-origin allowlist. No
+public/open-source license or external redistribution permission is implied. Credentials, live
+challenge state, authentication URLs, transcripts, generated Codex configuration, and local
+journals remain outside Git.
