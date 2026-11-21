@@ -90,10 +90,6 @@ authenticates and can create and reset a real case, and it requires an explicit
 
 ## Repository classification
 
-The source broker intentionally includes an internal exact-origin allowlist. The private
-`dsmithnautel/project-glacier-control-plane` and `dsmithnautel/project-glacier-mcp` repositories
-are company-approved storage for this material. Neither repository has a public/open-source
-license or approval for public forks, public package publication, or external redistribution.
-
+The source broker intentionally includes an internal exact-origin allowlist.
 If protected data is accidentally committed, stop publication and coordinate approved history
 remediation. Do not paste the data into an issue, pull request, or chat while reporting it.
